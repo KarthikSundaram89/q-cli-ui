@@ -84,7 +84,9 @@ app.get('/api/auth-status', (req, res) => {
     
     whoami.on('close', (code) => {
         if (code === 0 && output.trim()) {
-            res.json({ authenticated: true, status: `Logged in as: ${output.trim()}` });
+            // Return full output (including ARN) for modal display
+            const fullOutput = output.trim().replace(/^.*:\s*/, '');
+            res.json({ authenticated: true, status: fullOutput });
         } else {
             res.json({ authenticated: false, status: 'Not authenticated' });
         }

@@ -1,130 +1,212 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Q CLI UI</title>
+    <title>AWS AMA Agent</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        #chat { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; background: #f9f9f9; }
-        #input { 
-            width: 80%; 
-            padding: 10px; 
-            border: 2px solid #007cba; 
-            border-radius: 4px; 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header h1::before {
+            content: "🤖";
+            font-size: 32px;
+        }
+        .auth-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        #relogin {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        #relogin:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        #auth-status {
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+        }
+        .chat-container {
+            padding: 32px;
+        }
+        #chat {
+            background: #f8fafc;
+            border: none;
+            border-radius: 16px;
+            height: 500px;
+            overflow-y: auto;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .input-section {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        #input {
+            flex: 1;
+            padding: 16px 24px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
             font-size: 16px;
+            background: white;
+            transition: all 0.3s ease;
             outline: none;
         }
-        #input:focus { border-color: #005a87; }
-        #send { 
-            padding: 10px 20px; 
-            background: #007cba; 
-            color: white; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-size: 16px;
+        #input:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+        #send {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+        #send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
         }
         #loading {
             display: none;
-            margin: 10px 0;
-            padding: 12px;
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            color: #856404;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: none;
+            border-radius: 16px;
+            color: #92400e;
+            font-weight: 500;
         }
         .spinner {
             display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #007cba;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(146, 64, 14, 0.3);
+            border-top: 3px solid #92400e;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-right: 8px;
+            margin-right: 12px;
         }
-        .data-table {
-            border-collapse: collapse;
-            margin: 10px 0;
-            font-size: 14px;
-            font-family: Arial, sans-serif;
-            min-width: 400px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .data-table th,
-        .data-table td {
-            border: 1px solid #ddd;
-            padding: 8px 12px;
-            text-align: left;
-        }
-        .data-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-            color: #333;
-        }
-        .data-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .data-table tr:hover {
-            background-color: #f5f5f5;
-        }
-        #input:disabled { 
-            background: #f5f5f5; 
-            color: #999; 
-            cursor: not-allowed; 
-        }
-        #send:disabled { 
-            background: #ccc; 
-            cursor: not-allowed; 
-        }
-        #send:hover { background: #005a87; }
-        .message { 
-            margin: 10px 0; 
-            padding: 12px; 
-            border-radius: 8px; 
-            white-space: pre-wrap;
-            font-family: 'Courier New', monospace;
-            line-height: 1.4;
+        .message {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 16px;
             position: relative;
-            padding-left: 50px;
+            padding-left: 60px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            line-height: 1.6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
         .message-icon {
             position: absolute;
-            left: 12px;
-            top: 12px;
-            width: 24px;
-            height: 24px;
+            left: 16px;
+            top: 16px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         .message-time {
-            font-size: 10px;
-            color: #666;
-            margin-bottom: 5px;
-            font-family: Arial, sans-serif;
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-        .user { 
-            color: #1976d2; 
-            background: #e3f2fd; 
-            border-left: 4px solid #1976d2;
+        .user {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-left: 4px solid #3b82f6;
+            color: #1e40af;
         }
         .user .message-icon {
-            background: #1976d2;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             color: white;
         }
-        .assistant { 
-            color: #388e3c; 
-            background: #f1f8e9; 
-            border-left: 4px solid #388e3c;
+        .assistant {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            border-left: 4px solid #10b981;
+            color: #065f46;
         }
         .assistant .message-icon {
-            background: #388e3c;
+            background: linear-gradient(135deg, #10b981, #059669);
             color: white;
         }
-        
+        .data-table {
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+            min-width: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .data-table th,
+        .data-table td {
+            border: 1px solid #e5e7eb;
+            padding: 12px 16px;
+            text-align: left;
+        }
+        .data-table th {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            font-weight: 600;
+            color: #374151;
+        }
+        .data-table tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        .data-table tr:hover {
+            background: #f3f4f6;
+        }
         /* Modal styles */
         .modal {
             display: none;
@@ -134,77 +216,110 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
         }
         .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px;
+            background: white;
+            margin: 5% auto;
+            padding: 32px;
             border: none;
-            border-radius: 8px;
-            width: 80%;
-            max-width: 600px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
         }
         .close {
-            color: #aaa;
+            color: #9ca3af;
             float: right;
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
             cursor: pointer;
+            transition: color 0.3s ease;
         }
-        .close:hover { color: black; }
+        .close:hover { color: #374151; }
         .login-step {
-            margin: 15px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background: #f9f9f9;
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            background: #f9fafb;
+            transition: all 0.3s ease;
         }
         .login-step.active {
-            border-color: #007cba;
-            background: #e3f2fd;
+            border-color: #4f46e5;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
         }
         .login-step.completed {
-            border-color: #388e3c;
-            background: #f1f8e9;
+            border-color: #10b981;
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
         }
         .step-title {
-            font-weight: bold;
-            margin-bottom: 10px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 16px;
         }
         .step-output {
-            background: #000;
-            color: #0f0;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 12px;
+            background: #1f2937;
+            color: #10b981;
+            padding: 16px;
+            border-radius: 12px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
             white-space: pre-wrap;
             max-height: 200px;
             overflow-y: auto;
         }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
 <body>
-    <h1>Q CLI Agent UI</h1>
-    <div style="margin-bottom: 10px;">
-        <button id="relogin" style="padding: 8px 16px; background: #ff6b35; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">🔑 Relogin Q CLI</button>
-        <span id="auth-status" style="margin-left: 10px; font-size: 14px; color: #666;"></span>
+    <div class="container">
+        <div class="header">
+            <h1>AWS AMA Agent</h1>
+            <div class="auth-section">
+                <button id="relogin">🔑</button>
+            </div>
+        </div>
+        
+        <div class="chat-container">
+            <div id="chat"></div>
+            <div id="loading">
+                <div class="spinner"></div>
+                Q CLI is thinking...
+            </div>
+            <div class="input-section">
+                <input type="text" id="input" placeholder="Ask me anything about AWS...">
+                <button id="send">Send</button>
+            </div>
+        </div>
     </div>
-    <div id="chat"></div>
-    <div id="loading">
-        <div class="spinner"></div>
-        Q CLI is thinking...
-    </div>
-    <input type="text" id="input" placeholder="Type your message...">
-    <button id="send">Send</button>
 
     <!-- Login Modal -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Q CLI Login Process</h2>
+            <div id="current-profile" style="margin: 16px 0; padding: 12px; background: #f3f4f6; border-radius: 8px; font-size: 14px; color: #374151;">
+                <strong>Current Profile:</strong> <span id="modal-profile-id">Loading...</span>
+            </div>
             
             <div id="step1" class="login-step">
                 <div class="step-title">Step 1: Initiating Login</div>
@@ -221,8 +336,8 @@
                 <div id="step3-output" class="step-output">Waiting for Step 2...</div>
             </div>
             
-            <div style="margin-top: 20px; text-align: center;">
-                <button id="closeModal" style="padding: 10px 20px; background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+            <div style="margin-top: 32px; text-align: center;">
+                <button id="closeModal" style="padding: 12px 24px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">Close</button>
             </div>
         </div>
     </div>
@@ -233,7 +348,6 @@
         const send = document.getElementById('send');
         const loading = document.getElementById('loading');
         const relogin = document.getElementById('relogin');
-        const authStatus = document.getElementById('auth-status');
         const loginModal = document.getElementById('loginModal');
         const closeModal = document.getElementById('closeModal');
         const closeBtn = document.querySelector('.close');
@@ -241,7 +355,6 @@
         // Auto-focus input on page load
         window.onload = () => {
             input.focus();
-            checkAuthStatus();
         };
 
         // Modal controls
@@ -250,18 +363,6 @@
         window.onclick = (event) => {
             if (event.target === loginModal) loginModal.style.display = 'none';
         };
-
-        async function checkAuthStatus() {
-            try {
-                const response = await fetch('/api/auth-status');
-                const data = await response.json();
-                authStatus.textContent = data.status;
-                authStatus.style.color = data.authenticated ? '#388e3c' : '#d32f2f';
-            } catch (error) {
-                authStatus.textContent = 'Status unknown';
-                authStatus.style.color = '#666';
-            }
-        }
 
         function updateStep(stepNum, status, output) {
             const step = document.getElementById(`step${stepNum}`);
@@ -279,13 +380,22 @@
             // Show modal
             loginModal.style.display = 'block';
             
+            // Get and show current profile ARN in modal
+            try {
+                const response = await fetch('/api/auth-status');
+                const data = await response.json();
+                document.getElementById('modal-profile-id').textContent = data.status;
+            } catch (error) {
+                document.getElementById('modal-profile-id').textContent = 'Unable to fetch profile';
+            }
+            
             // Reset steps
             updateStep(1, 'active', 'Initiating Q CLI login...');
             updateStep(2, '', 'Waiting for Step 1...');
             updateStep(3, '', 'Waiting for Step 2...');
             
             relogin.disabled = true;
-            relogin.textContent = '🔄 Logging in...';
+            relogin.textContent = '🔄';
             
             try {
                 const response = await fetch('/api/relogin-interactive', { method: 'POST' });
@@ -308,13 +418,11 @@
                         }
                     }
                 }
-                
-                checkAuthStatus();
             } catch (error) {
                 updateStep(1, 'error', 'Login failed: ' + error.message);
             } finally {
                 relogin.disabled = false;
-                relogin.textContent = '🔑 Relogin Q CLI';
+                relogin.textContent = '🔑';
             }
         }
 

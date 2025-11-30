@@ -1,17 +1,19 @@
-# Q CLI Web UI
+# AWS AMA Agent Web UI
 
-A web-based interface for Amazon Q CLI that provides an intuitive chat interface for interacting with Q CLI agents.
+A modern web-based interface for Amazon Q CLI that provides an intuitive chat interface for AWS-related questions and tasks. **AMA** stands for "Ask Me Anything" - your go-to AWS assistant.
 
 ## Features
 
-- 🌐 **Web Interface** - Access Q CLI through your browser
-- 💬 **Persistent Conversations** - Maintains context across messages
-- 👤 **User Icons** - Visual distinction between user and assistant messages
+- 🌐 **Modern Web Interface** - Beautiful glass morphism design with gradients
+- 💬 **AWS AMA Chat** - Ask me anything about AWS services and best practices
+- 👤 **Clean Profile Management** - ARN display in login modal, clean main interface
 - 🕐 **Timestamps** - Date and time for each message
-- 🔄 **Loading Indicators** - Visual feedback during processing
+- 🔄 **Loading Indicators** - Smooth animations and visual feedback
 - 💾 **Auto-Save** - Conversations automatically saved to JSON files
 - 🛠️ **Tool Support** - Handles Q CLI tool usage with proper timing
-- 🔑 **Interactive Login** - Admin relogin with step-by-step modal interface
+- 🔑 **Interactive Login** - Modern modal interface with step-by-step authentication
+- ⌨️ **Keyboard Support** - Enter key to send messages
+- 🎨 **Responsive Design** - Modern gradients, shadows, and smooth transitions
 
 ## Quick Start
 
@@ -163,10 +165,11 @@ q whoami
 
 ## Usage
 
-1. **Send Messages** - Type in the input field and press Enter
-2. **View History** - Scroll through previous messages
+1. **Ask AWS Questions** - Type in the input field or press Enter to send
+2. **View History** - Scroll through previous conversations
 3. **Tool Usage** - Q CLI tools work automatically with proper timing
-4. **Conversations** - Auto-saved every 5 messages and on server shutdown
+4. **Profile Management** - Click 🔑 to view profile ARN and relogin
+5. **Conversations** - Auto-saved every 5 messages and on server shutdown
 
 ## Conversation Logs
 
