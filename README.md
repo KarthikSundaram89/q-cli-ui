@@ -11,6 +11,7 @@ A web-based interface for Amazon Q CLI that provides an intuitive chat interface
 - 🔄 **Loading Indicators** - Visual feedback during processing
 - 💾 **Auto-Save** - Conversations automatically saved to JSON files
 - 🛠️ **Tool Support** - Handles Q CLI tool usage with proper timing
+- 🔑 **Interactive Login** - Admin relogin with step-by-step modal interface
 
 ## Quick Start
 
@@ -99,6 +100,29 @@ chmod +x /root/q-cli-ui/auth-watchdog.sh
 # Set up AWS SSO with longer session duration (up to 12 hours)
 aws configure sso --profile q-profile
 ```
+
+## Interactive Login Modal
+
+The web interface includes an admin relogin feature:
+
+### Features:
+- **🔑 Relogin Button** - One-click authentication refresh
+- **📊 Auth Status** - Real-time login status display
+- **📱 Step-by-Step Modal** - Interactive 3-step login process:
+  1. **Initiating Login** - Starting Q CLI login command
+  2. **Browser Authentication** - Device code and clickable URL
+  3. **Verification** - Login confirmation
+
+### Usage:
+1. Click "🔑 Relogin Q CLI" button in the header
+2. Modal shows device code (e.g., "GPDC-LLZK")
+3. Click the provided URL to authenticate in browser
+4. Modal updates automatically when login completes
+
+### Technical Details:
+- Uses `q login --use-device-flow` for URL generation
+- Real-time streaming updates via `/api/relogin-interactive`
+- Automatic Q CLI session restart after successful login
 
 ## Files
 

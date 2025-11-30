@@ -124,10 +124,74 @@
             background: #388e3c;
             color: white;
         }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: none;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover { color: black; }
+        .login-step {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .login-step.active {
+            border-color: #007cba;
+            background: #e3f2fd;
+        }
+        .login-step.completed {
+            border-color: #388e3c;
+            background: #f1f8e9;
+        }
+        .step-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .step-output {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
     <h1>Q CLI Agent UI</h1>
+    <div style="margin-bottom: 10px;">
+        <button id="relogin" style="padding: 8px 16px; background: #ff6b35; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">🔑 Relogin Q CLI</button>
+        <span id="auth-status" style="margin-left: 10px; font-size: 14px; color: #666;"></span>
+    </div>
     <div id="chat"></div>
     <div id="loading">
         <div class="spinner"></div>
@@ -136,14 +200,123 @@
     <input type="text" id="input" placeholder="Type your message...">
     <button id="send">Send</button>
 
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Q CLI Login Process</h2>
+            
+            <div id="step1" class="login-step">
+                <div class="step-title">Step 1: Initiating Login</div>
+                <div id="step1-output" class="step-output">Waiting...</div>
+            </div>
+            
+            <div id="step2" class="login-step">
+                <div class="step-title">Step 2: Browser Authentication</div>
+                <div id="step2-output" class="step-output">Waiting for Step 1...</div>
+            </div>
+            
+            <div id="step3" class="login-step">
+                <div class="step-title">Step 3: Verification</div>
+                <div id="step3-output" class="step-output">Waiting for Step 2...</div>
+            </div>
+            
+            <div style="margin-top: 20px; text-align: center;">
+                <button id="closeModal" style="padding: 10px 20px; background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const chat = document.getElementById('chat');
         const input = document.getElementById('input');
         const send = document.getElementById('send');
         const loading = document.getElementById('loading');
+        const relogin = document.getElementById('relogin');
+        const authStatus = document.getElementById('auth-status');
+        const loginModal = document.getElementById('loginModal');
+        const closeModal = document.getElementById('closeModal');
+        const closeBtn = document.querySelector('.close');
 
         // Auto-focus input on page load
-        window.onload = () => input.focus();
+        window.onload = () => {
+            input.focus();
+            checkAuthStatus();
+        };
+
+        // Modal controls
+        closeModal.onclick = () => loginModal.style.display = 'none';
+        closeBtn.onclick = () => loginModal.style.display = 'none';
+        window.onclick = (event) => {
+            if (event.target === loginModal) loginModal.style.display = 'none';
+        };
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth-status');
+                const data = await response.json();
+                authStatus.textContent = data.status;
+                authStatus.style.color = data.authenticated ? '#388e3c' : '#d32f2f';
+            } catch (error) {
+                authStatus.textContent = 'Status unknown';
+                authStatus.style.color = '#666';
+            }
+        }
+
+        function updateStep(stepNum, status, output) {
+            const step = document.getElementById(`step${stepNum}`);
+            const stepOutput = document.getElementById(`step${stepNum}-output`);
+            
+            step.className = `login-step ${status}`;
+            
+            // Make URLs clickable
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const htmlOutput = output.replace(urlRegex, '<a href="$1" target="_blank" style="color: #00ff00; text-decoration: underline;">$1</a>');
+            stepOutput.innerHTML = htmlOutput;
+        }
+
+        async function reloginQ() {
+            // Show modal
+            loginModal.style.display = 'block';
+            
+            // Reset steps
+            updateStep(1, 'active', 'Initiating Q CLI login...');
+            updateStep(2, '', 'Waiting for Step 1...');
+            updateStep(3, '', 'Waiting for Step 2...');
+            
+            relogin.disabled = true;
+            relogin.textContent = '🔄 Logging in...';
+            
+            try {
+                const response = await fetch('/api/relogin-interactive', { method: 'POST' });
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n').filter(line => line.trim());
+                    
+                    for (const line of lines) {
+                        try {
+                            const data = JSON.parse(line);
+                            updateStep(data.step, data.status, data.output);
+                        } catch (e) {
+                            // Ignore non-JSON lines
+                        }
+                    }
+                }
+                
+                checkAuthStatus();
+            } catch (error) {
+                updateStep(1, 'error', 'Login failed: ' + error.message);
+            } finally {
+                relogin.disabled = false;
+                relogin.textContent = '🔑 Relogin Q CLI';
+            }
+        }
 
         function formatTables(text) {
             // Convert ASCII tables to HTML tables
@@ -298,6 +471,7 @@
         }
 
         send.addEventListener('click', sendMessage);
+        relogin.addEventListener('click', reloginQ);
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });

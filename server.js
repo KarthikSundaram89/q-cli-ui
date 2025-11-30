@@ -75,6 +75,129 @@ app.post('/api/chat', (req, res) => {
     }
 });
 
+app.get('/api/auth-status', (req, res) => {
+    const { spawn } = require('child_process');
+    const whoami = spawn('q', ['whoami'], { stdio: 'pipe' });
+    
+    let output = '';
+    whoami.stdout.on('data', (data) => output += data.toString());
+    
+    whoami.on('close', (code) => {
+        if (code === 0 && output.trim()) {
+            res.json({ authenticated: true, status: `Logged in as: ${output.trim()}` });
+        } else {
+            res.json({ authenticated: false, status: 'Not authenticated' });
+        }
+    });
+});
+
+app.post('/api/relogin', (req, res) => {
+    const { spawn } = require('child_process');
+    const login = spawn('q', ['login', '--refresh-token'], { stdio: 'pipe' });
+    
+    login.on('close', (code) => {
+        if (code === 0) {
+            // Kill existing Q process to force restart
+            if (qProcess) {
+                qProcess.kill();
+                qProcess = null;
+            }
+            res.json({ success: true, message: 'Relogin successful' });
+        } else {
+            res.json({ success: false, message: 'Relogin failed' });
+        }
+    });
+});
+
+app.post('/api/relogin-interactive', (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/plain',
+        'Transfer-Encoding': 'chunked'
+    });
+    
+    const sendStep = (step, status, output) => {
+        res.write(JSON.stringify({ step, status, output }) + '\n');
+    };
+    
+    // Step 1: Start login
+    sendStep(1, 'active', 'Starting Q CLI login process...');
+    
+    const { spawn } = require('child_process');
+    const login = spawn('q', ['login', '--license', 'pro', '--use-device-flow', '--identity-provider', 'altisource.awsapps.com'], { stdio: 'pipe' });
+    
+    let output = '';
+    
+    let foundUrl = '';
+    let deviceCode = '';
+    
+    const processOutput = (data) => {
+        const text = data.toString();
+        output += text;
+        
+        // Extract device code
+        const codeMatch = text.match(/Code:\s*([A-Z0-9-]+)/);
+        if (codeMatch && !deviceCode) {
+            deviceCode = codeMatch[1];
+        }
+        
+        // Look for "Open this URL:" line
+        const urlMatch = text.match(/Open this URL:\s*(https:\/\/[^\s\n\r]+)/);
+        if (urlMatch && !foundUrl) {
+            foundUrl = urlMatch[1];
+        }
+        
+        if (deviceCode || foundUrl) {
+            sendStep(1, 'completed', 'Login command initiated successfully');
+            
+            if (foundUrl && deviceCode) {
+                sendStep(2, 'active', `Device Code: ${deviceCode}\n\nPlease open this URL in your browser:\n\n${foundUrl}\n\nClick the link above to authenticate.`);
+            } else if (foundUrl) {
+                sendStep(2, 'active', `Please open this URL in your browser:\n\n${foundUrl}\n\nClick the link above to authenticate.`);
+            } else {
+                sendStep(2, 'active', 'Waiting for authentication URL...\n' + text);
+            }
+        }
+        
+        if (text.includes('success') || text.includes('logged in') || text.includes('Welcome')) {
+            sendStep(2, 'completed', 'Browser authentication completed');
+            sendStep(3, 'active', 'Verifying login status...');
+        }
+    };
+    
+    login.stdout.on('data', processOutput);
+    login.stderr.on('data', processOutput);
+    
+    login.stderr.on('data', (data) => {
+        const text = data.toString();
+        if (text.includes('error') || text.includes('failed')) {
+            sendStep(1, 'error', 'Login failed: ' + text);
+        }
+    });
+    
+    login.on('close', (code) => {
+        if (code === 0) {
+            sendStep(3, 'completed', 'Login successful! Q CLI is now authenticated.');
+            // Kill existing Q process to force restart
+            if (qProcess) {
+                qProcess.kill();
+                qProcess = null;
+            }
+        } else {
+            sendStep(3, 'error', 'Login verification failed');
+        }
+        res.end();
+    });
+    
+    // Timeout after 60 seconds
+    setTimeout(() => {
+        if (!login.killed) {
+            login.kill();
+            sendStep(3, 'error', 'Login timeout - please try again');
+            res.end();
+        }
+    }, 60000);
+});
+
 function processMessage(message, res) {
     let output = '';
     let responseTimer;
