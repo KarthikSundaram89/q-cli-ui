@@ -70,6 +70,36 @@ A web-based interface for Amazon Q CLI that provides an intuitive chat interface
    sudo systemctl restart q-cli-ui.service
    ```
 
+## Auto-Relogin Setup
+
+The service includes automatic authentication handling:
+
+1. **Built-in Auto-Reauth** - Server detects auth failures and attempts relogin
+2. **Watchdog Script** - Monitors auth status every 30 minutes
+
+### Manual Setup (if needed):
+```bash
+# Create auth watchdog
+cat > /root/q-cli-ui/auth-watchdog.sh << 'EOF'
+#!/bin/bash
+if ! q whoami &>/dev/null; then
+    echo "Q CLI auth expired, attempting relogin..."
+    q login --refresh-token
+    systemctl restart q-cli-ui.service
+fi
+EOF
+
+# Make executable and add to cron
+chmod +x /root/q-cli-ui/auth-watchdog.sh
+(crontab -l 2>/dev/null; echo "*/30 * * * * /root/q-cli-ui/auth-watchdog.sh") | crontab -
+```
+
+### AWS SSO Configuration:
+```bash
+# Set up AWS SSO with longer session duration (up to 12 hours)
+aws configure sso --profile q-profile
+```
+
 ## Files
 
 - `index.html` - Web interface

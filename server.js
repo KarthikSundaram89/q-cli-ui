@@ -34,7 +34,22 @@ function startQSession() {
     
     // Handle stderr to catch any errors
     qProcess.stderr.on('data', (data) => {
-        console.error('Q CLI stderr:', data.toString());
+        const error = data.toString();
+        console.error('Q CLI stderr:', error);
+        
+        // Check for auth errors and attempt relogin
+        if (error.includes('authentication') || error.includes('login') || error.includes('expired')) {
+            console.log('Auth error detected, attempting relogin...');
+            setTimeout(() => {
+                const { spawn } = require('child_process');
+                const reauth = spawn('q', ['login', '--refresh-token'], { stdio: 'inherit' });
+                reauth.on('close', () => {
+                    console.log('Reauth completed, restarting Q session...');
+                    qProcess = null;
+                    startQSession();
+                });
+            }, 1000);
+        }
     });
 }
 
