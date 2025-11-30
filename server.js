@@ -123,7 +123,7 @@ app.post('/api/relogin-interactive', (req, res) => {
     sendStep(1, 'active', 'Starting Q CLI login process...');
     
     const { spawn } = require('child_process');
-    const login = spawn('q', ['login', '--license', 'pro', '--use-device-flow', '--identity-provider', 'altisource.awsapps.com'], { stdio: 'pipe' });
+    const login = spawn('q', ['login'], { stdio: 'pipe' });
     
     let output = '';
     
@@ -143,19 +143,12 @@ app.post('/api/relogin-interactive', (req, res) => {
         // Look for "Open this URL:" line
         const urlMatch = text.match(/Open this URL:\s*(https:\/\/[^\s\n\r]+)/);
         if (urlMatch && !foundUrl) {
-            foundUrl = urlMatch[1];
+            foundUrl = urlMatch[1].replace('view.awsapps.com', 'altisource.awsapps.com');
         }
         
-        if (deviceCode || foundUrl) {
+        if (text.includes('browser') || text.includes('open') || text.includes('success')) {
             sendStep(1, 'completed', 'Login command initiated successfully');
-            
-            if (foundUrl && deviceCode) {
-                sendStep(2, 'active', `Device Code: ${deviceCode}\n\nPlease open this URL in your browser:\n\n${foundUrl}\n\nClick the link above to authenticate.`);
-            } else if (foundUrl) {
-                sendStep(2, 'active', `Please open this URL in your browser:\n\n${foundUrl}\n\nClick the link above to authenticate.`);
-            } else {
-                sendStep(2, 'active', 'Waiting for authentication URL...\n' + text);
-            }
+            sendStep(2, 'active', 'Q CLI is opening your browser for authentication.\n\nPlease complete the login process in the browser window that opened.\n\nThis will authenticate with your configured SSO provider.');
         }
         
         if (text.includes('success') || text.includes('logged in') || text.includes('Welcome')) {

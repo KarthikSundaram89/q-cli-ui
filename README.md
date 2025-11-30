@@ -124,6 +124,11 @@ The web interface includes an admin relogin feature:
 - Real-time streaming updates via `/api/relogin-interactive`
 - Automatic Q CLI session restart after successful login
 
+### Authentication Notes:
+- **Device Flow**: Shows device code and generic AWS URL for manual authentication
+- **Regular Login**: Opens browser directly to configured SSO (recommended for organization SSO)
+- **Organization SSO**: For company-specific SSO (like Altisource), use regular login instead of device flow
+
 ## Files
 
 - `index.html` - Web interface
