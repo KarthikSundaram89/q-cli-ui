@@ -1,0 +1,4 @@
+node_modules/
+*.log
+conversation-*.json
+test-table.html
