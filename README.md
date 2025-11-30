@@ -28,6 +28,48 @@ A web-based interface for Amazon Q CLI that provides an intuitive chat interface
    - Local: http://localhost:8080
    - External: http://your-server-ip:8080
 
+## Production Setup (24/7 Service)
+
+1. **Create systemd service**
+   ```bash
+   sudo tee /etc/systemd/system/q-cli-ui.service > /dev/null <<EOF
+   [Unit]
+   Description=Q CLI Web UI
+   After=network.target
+
+   [Service]
+   Type=simple
+   User=root
+   WorkingDirectory=/root/q-cli-ui
+   ExecStart=/usr/bin/node server.js
+   Restart=always
+   RestartSec=10
+   Environment=NODE_ENV=production
+
+   [Install]
+   WantedBy=multi-user.target
+   EOF
+   ```
+
+2. **Enable and start service**
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable q-cli-ui.service
+   sudo systemctl start q-cli-ui.service
+   ```
+
+3. **Service management**
+   ```bash
+   # Check status
+   sudo systemctl status q-cli-ui.service
+   
+   # View logs
+   sudo journalctl -u q-cli-ui.service -f
+   
+   # Restart service
+   sudo systemctl restart q-cli-ui.service
+   ```
+
 ## Files
 
 - `index.html` - Web interface
